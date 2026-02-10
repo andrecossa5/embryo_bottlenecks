@@ -17,7 +17,7 @@ plu.set_rcParams()
 
 
 # Paths
-path_main = '/Users/cossa/Desktop/projects/manas_embryo/'
+path_main = '/Users/cossa/Desktop/projects/embryo_bottlenecks/'
 path_data = os.path.join(path_main, 'data')
 path_results = os.path.join(path_main, 'results')
 path_figures = os.path.join(path_main, 'figures')
@@ -52,10 +52,29 @@ df['status'] = np.where(df['FDR']<0.05, 'significant', 'non-significant')
 
 fig, axs = plt.subplots(1,2,figsize=(6,3), width_ratios=[18,4], sharey=True)
 
+order = [
+    "Left atria",
+    "Right ventricle",
+    "Right DMP trab",
+    "Right IVS",
+    "Centre base IVS",
+    "Centre tip IVS",
+    "Centre IVS",
+    "Left IVS",
+    "Left ventricle",
+    "Left ventricle + DMP",
+    "LV trab + compact",
+    "Left DMP trab",
+    "Left trabeculae",
+    "Apex",
+    "DMP",
+    "Aortic Valve",
+    "Aorta",
+    "Pulmonary trunk"
+]
 colors = {'non-significant':'grey', 'significant':'red'}
 ax = axs[0]
 df_ = df.query('sample=="Heart"')
-order = df_.groupby('Histo')['AOC'].median().sort_values(ascending=False).index
 plu.box(df_, x='Histo', y='AOC', color='white', x_order=order, ax=ax)
 sns.stripplot(
     data=df_, x='Histo', y='AOC', ax=ax, 
