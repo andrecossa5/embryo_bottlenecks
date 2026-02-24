@@ -32,6 +32,7 @@ path_figures = os.path.join(path_main, 'figures')
 df_aoc = (
     pd.concat(
         [pd.read_csv(os.path.join(path_results, f'PD53943o_AOC_table.csv')).assign(sample='Left Kidney'),
+         pd.read_csv(os.path.join(path_results, f'PD53943w_AOC_table.csv')).assign(sample='Right Kidney'),
          pd.read_csv(os.path.join(path_results, f'Heart_AOC_table.csv')).assign(sample='Heart')]
     )
     .query('k==5')
@@ -40,6 +41,7 @@ df_aoc = (
 df_meta = (
     pd.concat(
         [pd.read_csv(os.path.join(path_data, f'PD53943o_metadata.csv')).assign(sample='Left Kidney'),
+         pd.read_csv(os.path.join(path_data, f'PD53943w_metadata.csv')).assign(sample='Right Kidney'),
          pd.read_csv(os.path.join(path_data, f'Heart_metadata.csv')).assign(sample='Heart')]
     )
     [['Sample_ID', 'Histo']].drop_duplicates()
@@ -50,7 +52,7 @@ df['status'] = np.where(df['FDR']<0.05, 'significant', 'non-significant')
 
 ##
 
-fig, axs = plt.subplots(1,2,figsize=(6,3), width_ratios=[18,4], sharey=True)
+fig, axs = plt.subplots(1,3,figsize=(8,3), width_ratios=[18,4,3], sharey=True)
 
 order = [
     "Left atria",
@@ -107,6 +109,24 @@ sns.stripplot(
 plu.format_ax(ax=ax, xlabel='', rotx=90, reduced_spines=True, title='Left Kidney')
 ax.axhline(0, color='red', linestyle='--', linewidth=1)
 ax.get_legend().remove()
+
+ax = axs[2]
+df_ = df.query('sample=="Right Kidney"')
+order = df_.groupby('Histo')['AOC'].median().sort_values(ascending=False).index
+plu.box(df_, x='Histo', y='AOC', color='white', x_order=order, ax=ax)
+sns.stripplot(
+    data=df_, x='Histo', y='AOC', ax=ax, 
+    order=order, 
+    dodge=False,
+    hue='status',
+    palette=colors,
+    edgecolor='k',
+    linewidth=0.1,
+    size=2
+)
+plu.format_ax(ax=ax, xlabel='', rotx=90, reduced_spines=True, title='Right Kidney')
+ax.axhline(0, color='red', linestyle='--', linewidth=1)
+ax.get_legend().remove()
 plu.add_legend(ax=ax, colors=colors, loc='upper left', label='Status', 
                artists_size=6, label_size=8, ticks_size=6)
 
@@ -115,3 +135,4 @@ fig.savefig(os.path.join(path_figures, 'Fig4f.pdf'))
 
 
 ##
+

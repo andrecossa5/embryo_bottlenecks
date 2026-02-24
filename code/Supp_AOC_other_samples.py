@@ -8,6 +8,7 @@ import pandas as pd
 import plotting_utils as plu
 import matplotlib.pyplot as plt
 import matplotlib
+import seaborn as sns
 matplotlib.use('macOSX')
 plu.set_rcParams()
 
@@ -16,7 +17,7 @@ plu.set_rcParams()
 
 
 # Paths
-path_main = '/Users/cossa/Desktop/projects/manas_embryo/'
+path_main = '/Users/cossa/Desktop/projects/embryo_bottlenecks/'
 path_data = os.path.join(path_main, 'data')
 path_results = os.path.join(path_main, 'results')
 path_figures = os.path.join(path_main, 'figures')
@@ -81,3 +82,16 @@ fig.savefig(os.path.join(path_figures, f'Supp_AOC_Right_kidney.pdf'))
 
 ##
 
+
+# Read AOCs
+df_aoc = df.query('k==5').set_index('Sample_ID')
+df_meta = (
+    pd.read_csv(os.path.join(path_data, f'PD53943w_metadata.csv'))
+    [['Sample_ID', 'Histo']].drop_duplicates()
+    .set_index('Sample_ID')
+)
+df = df_meta.join(df_aoc)
+df['status'] = np.where(df['FDR']<0.05, 'significant', 'non-significant')
+
+
+##

@@ -32,7 +32,7 @@ def rescale_distances(D):
 
 
 # Paths
-path_main = '/Users/cossa/Desktop/projects/manas_embryo/'
+path_main = '/Users/cossa/Desktop/projects/embryo_bottlenecks/'
 path_data = os.path.join(path_main, 'data')
 path_results = os.path.join(path_main, 'results')
 path_figures = os.path.join(path_main, 'figures')
@@ -65,9 +65,9 @@ idx = mt.pp.kNN_graph(D=D_xyz.values, k=30, from_distances=True)[0]
 D = rescale_distances(D.values)
 
 # Find examples of good and bad AOC
-df_aoc.query('k==5').sort_values('AOC', ascending=False)
+df_aoc.query('k==5 and p>0').sort_values('AOC', ascending=False)
 df_aoc.query('k==5 and AOC<0.05 and AOC>-0.05').sort_values('AOC', ascending=True)
-df_ = spatial_coords.join(df_aoc.query('k==5').set_index('Sample_ID')[['AOC', 'FDR']])
+df_ = spatial_coords.join(df_aoc.query('k==5').set_index('Sample_ID')[['AOC', 'FDR', 'p']])
 
 
 ##
@@ -87,14 +87,17 @@ fig.savefig(os.path.join(path_figures, 'Fig4c.pdf'))
 
 
 ##
-
+plt.show()
 
 # Examples zoom-ins
 fig, ax = plt.subplots(figsize=(2,1.5))
 
 # lcm = 'PD53943o_lo0229'
 # lcm = 'PD53943o_lo0090'
-lcm = 'PD53943o_lo0104'
+# lcm = 'PD53943o_lo0104'
+
+lcm = 'PD53943o_lo0038'
+
 
 lcm_idx = D_xyz.index.get_loc(lcm)
 neighbors = [ D_xyz.index[i] for i in idx[lcm_idx] ]
@@ -129,3 +132,5 @@ fig.savefig(os.path.join(path_figures, f'Fig4d_{lcm}.pdf'))
 
 
 ##
+
+
