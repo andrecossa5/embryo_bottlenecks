@@ -50,9 +50,13 @@ df_meta = (
 df = df_meta.join(df_aoc)
 df['status'] = np.where(df['FDR']<0.05, 'significant', 'non-significant')
 
+
 ##
 
+
 fig, axs = plt.subplots(1,3,figsize=(8,3), width_ratios=[18,4,3], sharey=True)
+
+plu.set_rcParams({'axes.titlesize': 8, 'axes.labelsize': 8})
 
 order = [
     "Left atria",
