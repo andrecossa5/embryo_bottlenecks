@@ -1,5 +1,5 @@
 """
-Manas' Embryo project Spatial Association analyses.
+AOC on brain and liver samples.
 """
 
 import os
@@ -43,9 +43,6 @@ def rescale_distances(D):
     D = (D-min_dist)/(max_dist-min_dist)
     np.fill_diagonal(D, 0)
     return D
-
-
-##
 
 
 def spatial_AOC(
@@ -240,18 +237,10 @@ path_results = os.path.join(path_main, 'results')
 ##
 
 
-# Sample
-organ = 'Heart'
-
-# Read mutations table
-mut_table = pd.read_csv(os.path.join(path_data, f'{organ}_metadata.csv'))
-muts = ( 
-    mut_table 
-    .pivot_table(index='Sample_ID', columns='mutation_id', values='VAF', fill_value=0)
-)
-muts = muts.loc[:,(muts>0).any(axis=0)]
-
-# Create sparse co-occuring weight matrix for soft cosine distance calculation
+# Read mutations table and coordinates
+mut_table = pd.read_csv(os.path.join(path_data, 'Final_Dataframe_heart_annotations_raw_trophoblasts.csv'))
+coords = pd.read_csv(os.path.join(path_data, 'df_brain_liver_annotations_unique_for_Andrea.csv'))
+coords.dropna(subset=['x', 'y'], inplace=True)
 branch_df = pd.read_csv(
     os.path.join(
         path_data, 
@@ -259,6 +248,29 @@ branch_df = pd.read_csv(
     ),
     sep='\t'
 )
+
+
+##
+
+
+# Brain
+organ = 'Brain'
+
+# Calculate euclidean distances in physical space
+samples = set(coords.query('Bulk_phenotype == @organ')['Sample_ID'].values)
+spatial_coords = coords.query('Sample_ID in @samples').set_index('Sample_ID')[['x', 'y']]
+samples = set(spatial_coords.index.values)
+
+# Subset mut_table
+mut_table.columns
+muts = ( 
+    mut_table
+    .query('Sample_ID in @samples')
+    .pivot_table(index='Sample_ID', columns='mutation_id', values='VAF', fill_value=0)
+)
+muts = muts.loc[:,(muts>0).any(axis=0)]
+
+# Create sparse co-occuring weight matrix for soft cosine distance calculation
 branch_df['mut_id'] = branch_df['Chr'] + '_' + \
                       branch_df['Pos'].astype(str) + '_' + \
                       branch_df['Ref'] + '_' + \
@@ -274,34 +286,15 @@ W = (W.toarray()).astype(np.uint8)
 W = pd.DataFrame(W, index=mut_ids.cat.categories, columns=mut_ids.cat.categories)
 W = W.loc[muts.columns, muts.columns]
 
-
-##
-
-
-# Spatial coordinates
-spatial_coords = (
-    pd.read_csv(os.path.join(path_data, f'{organ}_final_coorindates_135.csv'))
-    # pd.read_csv(os.path.join(path_data, f'{sample}_coordinates.csv'))
-    .set_index('name')
-    .loc[muts.index] # Ensure proper registration with mut samples
-)
-
-# Check 
-np.all(spatial_coords.index==muts.index)
-
-
-# Mock data for soft cosine calculations
-# X = np.array([[.0001,.000002,0],[.1,0,.0000001],[.1,.00000004,.1],[.1,.2,.0000001]])
-# X1 = np.array([[1,2,3],[3,4,3],[5,6,7],[1,1,1]])
-# W = np.array([[1,1,0],[1,1,1],[0,1,1]])
-# W.T == W
+# Check
+np.all(muts.index == spatial_coords.index)
 
 # Calculate genetic distances
 D = pairwise_soft_cosine(muts.values, W.values)
 D = pd.DataFrame(D, index=muts.index, columns=muts.index)
 D.to_csv(os.path.join(path_results, f'{organ}_genetic_distances.csv'))
 
-# Calculate euclidean distances in physical space
+# Calculate euclidean distances in physical space
 D_xyz = pairwise_distances(spatial_coords.values, metric='euclidean')
 D_xyz = pd.DataFrame(D_xyz, index=muts.index, columns=muts.index)
 D_xyz.to_csv(os.path.join(path_results, f'{organ}_physical_distances.csv'))
@@ -309,24 +302,6 @@ D_xyz.to_csv(os.path.join(path_results, f'{organ}_physical_distances.csv'))
 
 ##
 
-
-# AOC analysis
-
-"""
-Genetic distance --> Cas 9 distance (D->D1)
-Spatial neighbors --> MT-SNVs kNNs
-
-Observed rank: the rank across all (ordered) sample-i genetic distances 
-of the mean genetic distances between sample-i and its k nearest 
-neighbors (in physical space)
-Random rank: the rank across all (ordered) sample-i genetic distances 
-of the mean genetic distances between sample-i and a random selection o k sample
-
-AOC: mean (across random trials) difference between a random rank and the 
-observed rank normalized by the number of total samples
-
-p: p_value = np.sum(random_ranks < obs_rank) / n_trials
-"""
 
 # Keep un-rescaled distances: genetic ones for the neighborhood effect sizes
 # (rescaling shifts the scale, distorting ratios), physical ones for reporting microns
@@ -407,13 +382,10 @@ resolution = 0.44186  # Microns per pixel (LCM image resolution)
 # Re-calculate unscaled distances
 D_xyz_unscaled = pairwise_distances(spatial_coords.values, metric='euclidean')
 d = {}
-for k in [3, 5, 10, 15, 20, 25]:
+for k in [3, 5, 10, 15]:
     idx, D, _ = mt.pp.kNN_graph(D=D_xyz, k=k, from_distances=True)
     d[k] = np.mean([ 
         np.mean(resolution * D_xyz_unscaled[i, idx[i,:]]) \
         for i in range(D.shape[0]) 
     ])
 print(d)
-
-
-##
