@@ -163,6 +163,7 @@ cython_debug/
 
 # Specifics
 ppt/
+figures.old/
 figures/
 data/
 results/
